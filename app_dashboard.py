@@ -61,7 +61,17 @@ df = pd.read_sql_query("SELECT * FROM recovery_audit ORDER BY id DESC", conn)
 conn.close()
 
 if not df.empty:
-    st.dataframe(df, width=1200)
+    st.dataframe(
+        df,
+        width=1200,
+        column_config={
+            "payment_link": st.column_config.LinkColumn(
+                "Payment Link",
+                help="Click to open checkout page",
+                display_text="Open Razorpay Link"
+            )
+        }
+    )
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Events Analyzed", len(df))
     col2.metric("Successful Links Dispatched", len(df[df["status"] == "SUCCESS_LINK_GENERATED"]))
