@@ -46,17 +46,17 @@ def process_recovery(order_id: str, amount: float, failure_code: str, attempts: 
     payment_link_url = "N/A"
     status = "REJECTED"
 
-    # Resolve keys from parameter or local environment
-    active_key_id = key_id or os.getenv("RAZORPAY_KEY_ID")
-    active_key_secret = key_secret or os.getenv("RAZORPAY_KEY_SECRET")
+    # Direct resolution of credentials
+    active_key_id = str(key_id or os.getenv("RAZORPAY_KEY_ID") or "").strip()
+    active_key_secret = str(key_secret or os.getenv("RAZORPAY_KEY_SECRET") or "").strip()
 
     if decision["action"] != "ABANDON":
         if not active_key_id or not active_key_secret:
-            status = "FAILED_API_ERROR: Missing Razorpay credentials"
+            status = "FAILED_API_ERROR: Missing Razorpay credentials in Secrets."
             payment_link_url = "FAILED"
         else:
             try:
-                client = razorpay.Client(auth=(str(active_key_id).strip(), str(active_key_secret).strip()))
+                client = razorpay.Client(auth=(active_key_id, active_key_secret))
                 link_data = {
                     "amount": int(final_amount * 100),
                     "currency": "INR",

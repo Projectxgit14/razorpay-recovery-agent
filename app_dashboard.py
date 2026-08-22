@@ -7,9 +7,22 @@ from database import log_audit, init_db
 
 init_db()
 
-# Read credentials from st.secrets (Cloud) or os.getenv (Local)
-key_id = st.secrets.get("RAZORPAY_KEY_ID") if "RAZORPAY_KEY_ID" in st.secrets else os.getenv("RAZORPAY_KEY_ID")
-key_secret = st.secrets.get("RAZORPAY_KEY_SECRET") if "RAZORPAY_KEY_SECRET" in st.secrets else os.getenv("RAZORPAY_KEY_SECRET")
+# Safe credential retrieval from Streamlit secrets or OS env
+key_id = None
+key_secret = None
+
+try:
+    if "RAZORPAY_KEY_ID" in st.secrets:
+        key_id = st.secrets["RAZORPAY_KEY_ID"]
+    if "RAZORPAY_KEY_SECRET" in st.secrets:
+        key_secret = st.secrets["RAZORPAY_KEY_SECRET"]
+except Exception:
+    pass
+
+if not key_id:
+    key_id = os.getenv("RAZORPAY_KEY_ID")
+if not key_secret:
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
 
 st.set_page_config(page_title="Autonomous Recovery Agent", layout="wide")
 st.title("🛡️ Razorpay Autonomous Settlement & Recovery Agent")
