@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import sqlite3
@@ -5,6 +6,10 @@ from agent_engine import process_recovery
 from database import log_audit, init_db
 
 init_db()
+
+# Read credentials from st.secrets (Cloud) or os.getenv (Local)
+key_id = st.secrets.get("RAZORPAY_KEY_ID") if "RAZORPAY_KEY_ID" in st.secrets else os.getenv("RAZORPAY_KEY_ID")
+key_secret = st.secrets.get("RAZORPAY_KEY_SECRET") if "RAZORPAY_KEY_SECRET" in st.secrets else os.getenv("RAZORPAY_KEY_SECRET")
 
 st.set_page_config(page_title="Autonomous Recovery Agent", layout="wide")
 st.title("🛡️ Razorpay Autonomous Settlement & Recovery Agent")
@@ -22,7 +27,14 @@ sim_attempts = st.sidebar.slider("Prior Retries", 0, 4, 1)
 
 if st.sidebar.button("Simulate & Run Agent"):
     with st.spinner("Agent evaluating recovery policy..."):
-        res = process_recovery(sim_order_id, sim_amount, sim_error, sim_attempts)
+        res = process_recovery(
+            order_id=sim_order_id,
+            amount=sim_amount,
+            failure_code=sim_error,
+            attempts=sim_attempts,
+            key_id=key_id,
+            key_secret=key_secret
+        )
         log_audit(
             res["order_id"], res["original_amount"], res["failure_reason"],
             res["ai_reasoning"], res["approved_discount_pct"], res["final_amount"],

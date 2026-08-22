@@ -4,23 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def get_keys():
-    key_id = os.getenv("RAZORPAY_KEY_ID")
-    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
-    
-    # Direct fallback to Streamlit Cloud Secrets
-    if not key_id or not key_secret:
-        try:
-            import streamlit as st
-            if "RAZORPAY_KEY_ID" in st.secrets:
-                key_id = st.secrets["RAZORPAY_KEY_ID"]
-            if "RAZORPAY_KEY_SECRET" in st.secrets:
-                key_secret = st.secrets["RAZORPAY_KEY_SECRET"]
-        except Exception:
-            pass
-
-    return key_id, key_secret
-
 MAX_ALLOWED_DISCOUNT_PCT = 10.0
 MIN_ORDER_VALUE_FOR_DISCOUNT = 500.0
 
@@ -51,7 +34,7 @@ def ai_evaluate_failure(order_id: str, amount: float, failure_code: str, attempt
             "reasoning": "Standard cart drop-off. Send straightforward payment reminder link."
         }
 
-def process_recovery(order_id: str, amount: float, failure_code: str, attempts: int = 1):
+def process_recovery(order_id: str, amount: float, failure_code: str, attempts: int = 1, key_id: str = None, key_secret: str = None):
     decision = ai_evaluate_failure(order_id, amount, failure_code, attempts)
     discount = decision.get("proposed_discount_pct", 0.0)
     
@@ -63,14 +46,17 @@ def process_recovery(order_id: str, amount: float, failure_code: str, attempts: 
     payment_link_url = "N/A"
     status = "REJECTED"
 
+    # Resolve keys from parameter or local environment
+    active_key_id = key_id or os.getenv("RAZORPAY_KEY_ID")
+    active_key_secret = key_secret or os.getenv("RAZORPAY_KEY_SECRET")
+
     if decision["action"] != "ABANDON":
-        key_id, key_secret = get_keys()
-        if not key_id or not key_secret:
-            status = "FAILED_API_ERROR: Missing Razorpay credentials in Secrets."
+        if not active_key_id or not active_key_secret:
+            status = "FAILED_API_ERROR: Missing Razorpay credentials"
             payment_link_url = "FAILED"
         else:
             try:
-                client = razorpay.Client(auth=(str(key_id).strip(), str(key_secret).strip()))
+                client = razorpay.Client(auth=(str(active_key_id).strip(), str(active_key_secret).strip()))
                 link_data = {
                     "amount": int(final_amount * 100),
                     "currency": "INR",
