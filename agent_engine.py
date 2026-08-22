@@ -8,7 +8,15 @@ RZP_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RZP_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 if not RZP_KEY_ID or not RZP_KEY_SECRET:
-    raise ValueError("Missing Razorpay API credentials in .env file.")
+    try:
+        import streamlit as st
+        RZP_KEY_ID = RZP_KEY_ID or st.secrets.get("RAZORPAY_KEY_ID")
+        RZP_KEY_SECRET = RZP_KEY_SECRET or st.secrets.get("RAZORPAY_KEY_SECRET")
+    except Exception:
+        pass
+
+if not RZP_KEY_ID or not RZP_KEY_SECRET:
+    raise ValueError("Missing Razorpay API credentials in environment variables or Streamlit secrets.")
 
 client = razorpay.Client(auth=(RZP_KEY_ID, RZP_KEY_SECRET))
 
