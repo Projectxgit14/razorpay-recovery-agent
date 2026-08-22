@@ -2,23 +2,28 @@ import os
 import razorpay
 from dotenv import load_dotenv
 
+# Load local .env if present
 load_dotenv()
 
-RZP_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
-RZP_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+def get_razorpay_client():
+    key_id = os.getenv("RAZORPAY_KEY_ID")
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
+    
+    # Check Streamlit Cloud secrets fallback dynamically at runtime
+    if not key_id or not key_secret:
+        try:
+            import streamlit as st
+            if "RAZORPAY_KEY_ID" in st.secrets:
+                key_id = st.secrets["RAZORPAY_KEY_ID"]
+            if "RAZORPAY_KEY_SECRET" in st.secrets:
+                key_secret = st.secrets["RAZORPAY_KEY_SECRET"]
+        except Exception:
+            pass
 
-if not RZP_KEY_ID or not RZP_KEY_SECRET:
-    try:
-        import streamlit as st
-        RZP_KEY_ID = RZP_KEY_ID or st.secrets.get("RAZORPAY_KEY_ID")
-        RZP_KEY_SECRET = RZP_KEY_SECRET or st.secrets.get("RAZORPAY_KEY_SECRET")
-    except Exception:
-        pass
-
-if not RZP_KEY_ID or not RZP_KEY_SECRET:
-    raise ValueError("Missing Razorpay API credentials in environment variables or Streamlit secrets.")
-
-client = razorpay.Client(auth=(RZP_KEY_ID, RZP_KEY_SECRET))
+    if not key_id or not key_secret:
+        raise ValueError("Missing Razorpay API credentials in environment variables or Streamlit secrets.")
+        
+    return razorpay.Client(auth=(key_id.strip(), key_secret.strip()))
 
 MAX_ALLOWED_DISCOUNT_PCT = 10.0
 MIN_ORDER_VALUE_FOR_DISCOUNT = 500.0
@@ -64,6 +69,7 @@ def process_recovery(order_id: str, amount: float, failure_code: str, attempts: 
 
     if decision["action"] != "ABANDON":
         try:
+            client = get_razorpay_client()
             link_data = {
                 "amount": int(final_amount * 100),
                 "currency": "INR",
