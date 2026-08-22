@@ -2,14 +2,13 @@ import os
 import razorpay
 from dotenv import load_dotenv
 
-# Load local .env if present
 load_dotenv()
 
-def get_razorpay_client():
+def get_keys():
     key_id = os.getenv("RAZORPAY_KEY_ID")
     key_secret = os.getenv("RAZORPAY_KEY_SECRET")
     
-    # Check Streamlit Cloud secrets fallback dynamically at runtime
+    # Direct fallback to Streamlit Cloud Secrets
     if not key_id or not key_secret:
         try:
             import streamlit as st
@@ -20,10 +19,7 @@ def get_razorpay_client():
         except Exception:
             pass
 
-    if not key_id or not key_secret:
-        raise ValueError("Missing Razorpay API credentials in environment variables or Streamlit secrets.")
-        
-    return razorpay.Client(auth=(key_id.strip(), key_secret.strip()))
+    return key_id, key_secret
 
 MAX_ALLOWED_DISCOUNT_PCT = 10.0
 MIN_ORDER_VALUE_FOR_DISCOUNT = 500.0
@@ -68,24 +64,29 @@ def process_recovery(order_id: str, amount: float, failure_code: str, attempts: 
     status = "REJECTED"
 
     if decision["action"] != "ABANDON":
-        try:
-            client = get_razorpay_client()
-            link_data = {
-                "amount": int(final_amount * 100),
-                "currency": "INR",
-                "description": f"Recovery for Order #{order_id}",
-                "customer": {
-                    "name": "Test Customer",
-                    "email": "customer@example.com",
-                    "contact": "+919876543210"
-                }
-            }
-            response = client.payment_link.create(link_data)
-            payment_link_url = response.get("short_url", "http://test.link")
-            status = "SUCCESS_LINK_GENERATED"
-        except Exception as e:
-            status = f"FAILED_API_ERROR: {str(e)}"
+        key_id, key_secret = get_keys()
+        if not key_id or not key_secret:
+            status = "FAILED_API_ERROR: Missing Razorpay credentials in Secrets."
             payment_link_url = "FAILED"
+        else:
+            try:
+                client = razorpay.Client(auth=(str(key_id).strip(), str(key_secret).strip()))
+                link_data = {
+                    "amount": int(final_amount * 100),
+                    "currency": "INR",
+                    "description": f"Recovery for Order #{order_id}",
+                    "customer": {
+                        "name": "Test Customer",
+                        "email": "customer@example.com",
+                        "contact": "+919876543210"
+                    }
+                }
+                response = client.payment_link.create(link_data)
+                payment_link_url = response.get("short_url", "http://test.link")
+                status = "SUCCESS_LINK_GENERATED"
+            except Exception as e:
+                status = f"FAILED_API_ERROR: {str(e)}"
+                payment_link_url = "FAILED"
 
     return {
         "order_id": order_id,
