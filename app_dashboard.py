@@ -7,7 +7,6 @@ from database import log_audit, init_db
 
 init_db()
 
-# Safe credential retrieval from Streamlit secrets or OS env
 key_id = None
 key_secret = None
 
