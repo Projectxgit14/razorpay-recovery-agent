@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Fallback keys directly in code for deployment safety
 DEFAULT_KEY_ID = "rzp_test_TSRv08TUEjVcAE"
 DEFAULT_KEY_SECRET = "o0i4LBhluN3dr3KvZej8PGP4"
 
